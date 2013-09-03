@@ -64,3 +64,39 @@ class NullLoader:
     def load_template(self, name):
         raise self.load_text(name)
 
+
+class CachingFileLoader:
+    def __init__(self, basedir, debugging=False):
+        self.basedir = basedir
+        self.known_templates = {}
+        self.debugging = debugging
+        if debugging:
+            print("creating caching file loader with basedir: {0}".format(basedir))
+
+    def filename_of(self, name):
+        return os.path.join(self.basedir, name)
+
+    def load_text(self, name):
+        if self.debugging:
+            print("Loading text from {0} {1}".format(self.basedir, name))
+        f = open(self.filename_of(name))
+        try: return f.read()
+        finally: f.close()
+
+    def load_template(self, name):
+        if self.debugging:
+            print("Loading template... {0}".format(name))
+        mtime = os.path.getmtime(self.filename_of(name))
+        if self.known_templates.get(name, None):
+            template, prev_mtime = self.known_templates[name]
+            if mtime <= prev_mtime:
+                if self.debugging:
+                    print("loading parsed template from cache")
+                return template
+        if self.debugging:
+            print("loading text from disk")
+        template = Template(self.load_text(name))
+        template.ensure_compiled()
+        self.known_templates[name] = (template, mtime)
+        return template
+
