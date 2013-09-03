@@ -5,7 +5,7 @@ from setuptools import setup
 long_description = open('README.rst').read()
 
 setup(name="quik",
-      version="0.2.1",
+      version="0.2.2-dev",
       description="A fast and lightweight Python template engine",
       long_description=long_description,
       author="Thiago Avelino",
