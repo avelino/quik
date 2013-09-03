@@ -24,6 +24,21 @@ Here a small example of a Quik template
     </ul>
 
 
+Use It
+------
+
+Render via template:
+
+.. code-block:: python
+
+    from quik import CachingFileLoader
+
+    loader = CachingFileLoader('html')
+    template = loader.load_template('index.html')
+    print template.merge({'author': 'Thiago Avelino'},
+                         loader=loader).encode('utf-8')
+
+
 Features
 --------
 
