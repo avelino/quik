@@ -100,3 +100,112 @@ class CachingFileLoader:
         self.known_templates[name] = (template, mtime)
         return template
 
+
+class StoppableStream(StringIO):
+    def __init__(self, buf=''):
+        self.stop = False
+        StringIO.__init__(self, buf)
+
+    def write(self, s):
+        if not self.stop:
+            StringIO.write(self, s)
+
+
+WHITESPACE_TO_END_OF_LINE = re.compile(r'[ \t\r]*\n(.*)', re.S)
+
+class NoMatch(Exception): pass
+
+
+class LocalNamespace(dict):
+    def __init__(self, parent):
+        dict.__init__(self)
+        self.parent = parent
+
+    def __getitem__(self, key):
+        try: return dict.__getitem__(self, key)
+        except KeyError:
+            parent_value = self.parent[key]
+            self[key] = parent_value
+            return parent_value
+
+    def top(self):
+        if hasattr(self.parent, "top"):
+            return self.parent.top()
+        return self.parent
+
+    def __repr__(self):
+        return dict.__repr__(self) + '->' + repr(self.parent)
+
+
+class _Element:
+    def __init__(self, text, start=0):
+        self._full_text = text
+        self.start = self.end = start
+        self.parse()
+
+    def next_text(self):
+        return self._full_text[self.end:]
+
+    def my_text(self):
+        return self._full_text[self.start:self.end]
+
+    def full_text(self):
+        return self._full_text
+
+    def syntax_error(self, expected):
+        return TemplateSyntaxError(self, expected)
+
+    def identity_match(self, pattern):
+        m = pattern.match(self._full_text, self.end)
+        if not m: raise NoMatch()
+        self.end = m.start(pattern.groups)
+        return m.groups()[:-1]
+
+    def next_match(self, pattern):
+        m = pattern.match(self._full_text, self.end)
+        if not m: return False
+        self.end = m.start(pattern.groups)
+        return m.groups()[:-1]
+
+    def optional_match(self, pattern):
+        m = pattern.match(self._full_text, self.end)
+        if not m: return False
+        self.end = m.start(pattern.groups)
+        return True
+
+    def require_match(self, pattern, expected):
+        m = pattern.match(self._full_text, self.end)
+        if not m: raise self.syntax_error(expected)
+        self.end = m.start(pattern.groups)
+        return m.groups()[:-1]
+
+    def next_element(self, element_spec):
+        if callable(element_spec):
+            element = element_spec(self._full_text, self.end)
+            self.end = element.end
+            return element
+        else:
+            for element_class in element_spec:
+                try: element = element_class(self._full_text, self.end)
+                except NoMatch: pass
+                else:
+                    self.end = element.end
+                    return element
+            raise NoMatch()
+
+    def require_next_element(self, element_spec, expected):
+        if callable(element_spec):
+            try: element = element_spec(self._full_text, self.end)
+            except NoMatch: raise self.syntax_error(expected)
+            else:
+                self.end = element.end
+                return element
+        else:
+            for element_class in element_spec:
+                try: element = element_class(self._full_text, self.end)
+                except NoMatch: pass
+                else:
+                    self.end = element.end
+                    return element
+            expected = ', '.join([cls.__name__ for cls in element_spec])
+            raise self.syntax_error('one of: ' + expected)
