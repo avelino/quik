@@ -209,3 +209,191 @@ class _Element:
                     return element
             expected = ', '.join([cls.__name__ for cls in element_spec])
             raise self.syntax_error('one of: ' + expected)
+
+
+class Text(_Element):
+    PLAIN = re.compile(r'((?:[^\\\$#]+|\\[\$#])+|\$[^!\{a-z0-9_]|\$$|#$|#[^\{\}a-zA-Z0-9#\*]+|\\.)(.*)$', re.S + re.I)
+    ESCAPED_CHAR = re.compile(r'\\([\\\$#])')
+
+    def parse(self):
+        text, = self.identity_match(self.PLAIN)
+        def unescape(match):
+            return match.group(1)
+        self.text = self.ESCAPED_CHAR.sub(unescape, text)
+
+    def evaluate(self, stream, namespace, loader):
+        stream.write(self.text)
+
+
+class FallthroughHashText(_Element):
+    """ Plain tex, starting a hash, but which wouldn't be matched
+        by a directive or a macro earlier.
+        The canonical example is an HTML color spec.
+        Another good example, is in-document hypertext links
+        (or the dummy versions thereof often used a href targets
+        when javascript is used.
+        Note that it MUST NOT match block-ending directives. """
+    # because of earlier elements, this will always start with a hash
+    PLAIN = re.compile(r'(\#+\{?[\d\w]*\}?)(.*)$', re.S)
+
+    def parse(self):
+        self.text, = self.identity_match(self.PLAIN)
+        if self.text.startswith('#end') or self.text.startswith('#{end}') or self.text.startswith('#else') or self.text.startswith('#{else}') or self.text.startswith('#elseif') or self.text.startswith('#{elseif}'):
+            raise NoMatch
+
+    def evaluate(self, stream, namespace, loader):
+        stream.write(self.text)
+
+
+class IntegerLiteral(_Element):
+    INTEGER = re.compile(r'(-?\d+)(.*)', re.S)
+
+    def parse(self):
+        self.value, = self.identity_match(self.INTEGER)
+        self.value = int(self.value)
+
+    def calculate(self, namespace, loader):
+        return self.value
+
+
+class FloatingPointLiteral(_Element):
+    FLOAT = re.compile(r'(-?\d+\.\d+)(.*)', re.S)
+
+    def parse(self):
+        self.value, = self.identity_match(self.FLOAT)
+        self.value = float(self.value)
+
+    def calculate(self, namespace, loader):
+        return self.value
+
+
+class BooleanLiteral(_Element):
+    BOOLEAN = re.compile(r'((?:true)|(?:false))(.*)', re.S | re.I)
+
+    def parse(self):
+        self.value, = self.identity_match(self.BOOLEAN)
+        self.value = self.value.lower() == 'true'
+
+    def calculate(self, namespace, loader):
+        return self.value
+
+
+class StringLiteral(_Element):
+    STRING = re.compile(r"'((?:\\['nrbt\\\\\\$]|[^'\\])*)'(.*)", re.S)
+    ESCAPED_CHAR = re.compile(r"\\([nrbt'\\])")
+
+    def parse(self):
+        value, = self.identity_match(self.STRING)
+        def unescape(match):
+            return {'n': '\n', 'r': '\r', 'b': '\b', 't': '\t', '"': '"', '\\': '\\', "'": "'"}.get(match.group(1), '\\' + match.group(1))
+        self.value = self.ESCAPED_CHAR.sub(unescape, value)
+
+    def calculate(self, namespace, loader):
+        return self.value
+
+class InterpolatedStringLiteral(StringLiteral):
+    STRING = re.compile(r'"((?:\\["nrbt\\\\\\$]|[^"\\])*)"(.*)', re.S)
+    ESCAPED_CHAR = re.compile(r'\\([nrbt"\\])')
+
+    def parse(self):
+        StringLiteral.parse(self)
+        self.block = Block(self.value, 0)
+
+    def calculate(self, namespace, loader):
+        output = StoppableStream()
+        self.block.evaluate(output, namespace, loader)
+        return output.getvalue()
+
+
+class Range(_Element):
+    MIDDLE = re.compile(r'([ \t]*\.\.[ \t]*)(.*)$', re.S)
+
+    def parse(self):
+        self.value1 = self.next_element((FormalReference, IntegerLiteral))
+        self.identity_match(self.MIDDLE)
+        self.value2 = self.next_element((FormalReference, IntegerLiteral))
+
+    def calculate(self, namespace, loader):
+        value1 = self.value1.calculate(namespace, loader)
+        value2 = self.value2.calculate(namespace, loader)
+        if value2 < value1:
+            return xrange(value1, value2 - 1, -1)
+        return xrange(value1, value2 + 1)
+
+
+class ValueList(_Element):
+    COMMA = re.compile(r'\s*,\s*(.*)$', re.S)
+
+    def parse(self):
+        self.values = []
+        try: value = self.next_element(Value)
+        except NoMatch:
+            pass
+        else:
+            self.values.append(value)
+            while self.optional_match(self.COMMA):
+                value = self.require_next_element(Value, 'value')
+                self.values.append(value)
+
+    def calculate(self, namespace, loader):
+        return [value.calculate(namespace, loader) for value in self.values]
+
+
+class _EmptyValues:
+    def calculate(self, namespace, loader):
+        return []
+
+
+class ArrayLiteral(_Element):
+    START = re.compile(r'\[[ \t]*(.*)$', re.S)
+    END =   re.compile(r'[ \t]*\](.*)$', re.S)
+    values = _EmptyValues()
+
+    def parse(self):
+        self.identity_match(self.START)
+        try:
+            self.values = self.next_element((Range, ValueList))
+        except NoMatch:
+            pass
+        self.require_match(self.END, ']')
+        self.calculate = self.values.calculate
+
+class DictionaryLiteral(_Element):
+    START = re.compile(r'{[ \t]*(.*)$', re.S)
+    END =   re.compile(r'[ \t]*}(.*)$', re.S)
+    KEYVALSEP = re.compile(r'[ \t]*:[[ \t]*(.*)$', re.S)
+    PAIRSEP = re.compile(r'[ \t]*,[ \t]*(.*)$', re.S)
+
+    def parse(self):
+        self.identity_match(self.START)
+        self.local_data = {}
+        if self.optional_match(self.END):
+            # it's an empty dictionary
+            return
+        while(True):
+            key = self.next_element(Value)
+            self.require_match(self.KEYVALSEP, ':')
+            value = self.next_element(Value)
+            self.local_data[key] = value
+            if not self.optional_match(self.PAIRSEP): break
+        self.require_match(self.END, '}')
+
+    # Note that this delays calculation of values until it's used.
+    # TODO confirm that that's correct.
+    def calculate(self, namespace, loader):
+        tmp = {}
+        for (key,val) in self.local_data.items():
+            tmp[key.calculate(namespace, loader)] = val.calculate(namespace, loader)
+        return tmp
+
+
+class Value(_Element):
+    def parse(self):
+        self.expression = self.next_element((FormalReference, FloatingPointLiteral, IntegerLiteral,
+                                             StringLiteral, InterpolatedStringLiteral, ArrayLiteral,
+                                             DictionaryLiteral, ParenthesizedExpression, UnaryOperatorValue,
+                                             BooleanLiteral))
+
+    def calculate(self, namespace, loader):
+        return self.expression.calculate(namespace, loader)
+
