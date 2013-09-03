@@ -219,8 +219,8 @@ class _Element:
 
 
 class Text(_Element):
-    PLAIN = re.compile(r'((?:[^\\\$#]+|\\[\$#])+|\$[^!\{a-z0-9_]|\$$|#$|#[^\{\}a-zA-Z0-9#\*]+|\\.)(.*)$', re.S + re.I)
-    ESCAPED_CHAR = re.compile(r'\\([\\\$#])')
+    PLAIN = re.compile(r'((?:[^\\\@#]+|\\[\@#])+|\@[^!\{a-z0-9_]|\@@|#@|#[^\{\}a-zA-Z0-9#\*]+|\\.)(.*)$', re.S + re.I)
+    ESCAPED_CHAR = re.compile(r'\\([\\\@#])')
 
     def parse(self):
         text, = self.identity_match(self.PLAIN)
@@ -286,7 +286,7 @@ class BooleanLiteral(_Element):
 
 
 class StringLiteral(_Element):
-    STRING = re.compile(r"'((?:\\['nrbt\\\\\\$]|[^'\\])*)'(.*)", re.S)
+    STRING = re.compile(r"'((?:\\['nrbt\\\\\\@]|[^'\\])*)'(.*)", re.S)
     ESCAPED_CHAR = re.compile(r"\\([nrbt'\\])")
 
     def parse(self):
@@ -299,7 +299,7 @@ class StringLiteral(_Element):
         return self.value
 
 class InterpolatedStringLiteral(StringLiteral):
-    STRING = re.compile(r'"((?:\\["nrbt\\\\\\$]|[^"\\])*)"(.*)', re.S)
+    STRING = re.compile(r'"((?:\\["nrbt\\\\\\@]|[^"\\])*)"(.*)', re.S)
     ESCAPED_CHAR = re.compile(r'\\([nrbt"\\])')
 
     def parse(self):
@@ -479,7 +479,7 @@ class ParameterList(_Element):
 
 
 class FormalReference(_Element):
-    START = re.compile(r'\$(!?)(\{?)(.*)$', re.S)
+    START = re.compile(r'\@(!?)(\{?)(.*)$', re.S)
     CLOSING_BRACE = re.compile(r'\}(.*)$', re.S)
 
     def parse(self):
@@ -726,7 +726,7 @@ class IfDirective(_Element):
 
 
 class Assignment(_Element):
-    START = re.compile(r'\s*\(\s*\$([a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*)*)\s*=\s*(.*)$', re.S + re.I)
+    START = re.compile(r'\s*\(\s*\@([a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*)*)\s*=\s*(.*)$', re.S + re.I)
     END = re.compile(r'\s*\)(?:[ \t]*\r?\n)?(.*)$', re.S + re.M)
 
     def parse(self):
@@ -760,7 +760,7 @@ class MacroDefinition(_Element):
     OPEN_PAREN = re.compile(r'[ \t]*\(\s*(.*)$', re.S)
     NAME = re.compile(r'\s*([a-z][a-z_0-9]*)\b(.*)', re.S + re.I)
     CLOSE_PAREN = re.compile(r'[ \t]*\)(.*)$', re.S)
-    ARG_NAME = re.compile(r'[, \t]+\$([a-z][a-z_0-9]*)(.*)$', re.S + re.I)
+    ARG_NAME = re.compile(r'[, \t]+\@([a-z][a-z_0-9]*)(.*)$', re.S + re.I)
     RESERVED_NAMES = ('if', 'else', 'elseif', 'set', 'macro',
                       'for', 'parse', 'include', 'stop', 'end')
     def parse(self):
@@ -894,7 +894,7 @@ class ForDirective(_Element):
     START = re.compile(r'#for\b(.*)$', re.S + re.I)
     OPEN_PAREN = re.compile(r'[ \t]*\(\s*(.*)$', re.S)
     IN = re.compile(r'[ \t]+in[ \t]+(.*)$', re.S)
-    LOOP_VAR_NAME = re.compile(r'\$([a-z_][a-z0-9_]*)(.*)$', re.S + re.I)
+    LOOP_VAR_NAME = re.compile(r'\@([a-z_][a-z0-9_]*)(.*)$', re.S + re.I)
     CLOSE_PAREN = re.compile(r'[ \t]*\)(.*)$', re.S)
 
     def parse(self):
@@ -916,7 +916,7 @@ class ForDirective(_Element):
                 return
             if hasattr(iterable, 'keys'): iterable = iterable.keys()
             if not hasattr(iterable, '__getitem__'):
-                raise ValueError("value for $%s is not iterable in #for: %s" % (self.loop_var_name, iterable))
+                raise ValueError("value for @%s is not iterable in #for: %s" % (self.loop_var_name, iterable))
             for item in iterable:
                 namespace = LocalNamespace(namespace)
                 namespace['velocityCount'] = counter
