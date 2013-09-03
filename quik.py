@@ -56,3 +56,11 @@ class TemplateSyntaxError(TemplateError):
     def element_name(self):
         return re.sub('([A-Z])', lambda m: ' ' + m.group(1).lower(), self.element.__class__.__name__).strip()
 
+
+class NullLoader:
+    def load_text(self, name):
+        raise TemplateError("no loader available for '%s'" % name)
+
+    def load_template(self, name):
+        raise self.load_text(name)
+
