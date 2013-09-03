@@ -2,9 +2,12 @@
 from setuptools import setup
 
 
+long_description = open('README.rst').read()
+
 setup(name="quik",
       version="0.2.1",
       description="A fast and lightweight Python template engine",
+      long_description=long_description,
       author="Thiago Avelino",
       author_email="thiago@avelino.xxx",
       url="https://github.com/avelino/quik",
