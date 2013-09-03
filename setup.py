@@ -3,7 +3,7 @@ from setuptools import setup
 
 
 setup(name="quik",
-      version="0.1",
+      version="0.2.1",
       description="A fast and lightweight Python template engine",
       author="Thiago Avelino",
       author_email="thiago@avelino.xxx",
