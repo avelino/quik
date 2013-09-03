@@ -1,6 +1,10 @@
 quik
 ====
 
+.. image:: https://travis-ci.org/avelino/quik.png?branch=master
+    :target: https://travis-ci.org/avelino/quik
+    :alt: Build Status - Travis CI
+
 A fast and lightweight Python template engine
 
 
