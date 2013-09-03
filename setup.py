@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 from setuptools import setup
 
+import quik
+
 
 long_description = open('README.rst').read()
 
 setup(name="quik",
-      version="0.2.2-dev",
+      version=quik.__version__,
       description="A fast and lightweight Python template engine",
       long_description=long_description,
       author="Thiago Avelino",
