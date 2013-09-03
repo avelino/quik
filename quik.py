@@ -27,3 +27,7 @@ class Template:
         self.ensure_compiled()
         self.root_element.evaluate(fileobj, namespace, loader)
 
+
+class TemplateError(Exception):
+    pass
+
