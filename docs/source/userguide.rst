@@ -20,8 +20,8 @@ Once a value has been assigned to a variable, you can reference the variable any
 
     <html>
         <body>
-            #set( $foo = "Quik" )
-            Hello $foo World!
+            #set( @foo = "Quik" )
+            Hello @foo World!
         </body>
     <html>
 
