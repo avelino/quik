@@ -9,6 +9,7 @@ setup(name="quik",
       author_email="thiago@avelino.xxx",
       url="https://github.com/avelino/quik",
       license="MIT",
+      py_modules=['quik'],
       zip_safe=False,
       classifiers=[
           'Development Status :: 5 - Production/Stable',
