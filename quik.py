@@ -573,3 +573,99 @@ class BinaryOperator(_Element):
     def greater_precedence_than(self, other):
         return self.precedence > other.precedence
 
+
+class UnaryOperatorValue(_Element):
+    UNARY_OP = re.compile(r'\s*(!)\s*(.*)$', re.S)
+    OPERATORS = {'!': operator.__not__}
+    def parse(self):
+        op_string, = self.identity_match(self.UNARY_OP)
+        self.value = self.next_element(Value)
+        self.op = self.OPERATORS[op_string]
+
+    def calculate(self, namespace, loader):
+        return self.op(self.value.calculate(namespace, loader))
+
+
+class Expression(_Element):
+
+    def parse(self):
+        self.expression = [self.next_element(Value)]
+        while(True):
+            try:
+                binary_operator = self.next_element(BinaryOperator)
+                value = self.require_next_element(Value, 'value')
+                self.expression.append(binary_operator)
+                self.expression.append(value)
+            except NoMatch:
+                break
+
+    def calculate(self, namespace, loader):
+        if not self.expression or len(self.expression) == 0:
+            return False
+        #TODO: how does velocity deal with an empty condition expression?
+
+        opstack = []
+        valuestack = [self.expression[0]]
+        terms = self.expression[1:]
+
+        # use top of opstack on top 2 values of valuestack
+        def stack_calculate(ops, values, namespace, loader):
+            value2 = values.pop()
+            if isinstance(value2, Value):
+                value2 = value2.calculate(namespace, loader)
+            value1 = values.pop()
+            if isinstance(value1, Value):
+                value1 = value1.calculate(namespace, loader)
+            result = ops.pop().apply_to(value1, value2)
+            # TODO this doesn't short circuit -- does velocity?
+            # also note they're eval'd out of order
+            values.append(result)
+
+        while terms:
+            # next is a binary operator
+            if not opstack or terms[0].greater_precedence_than(opstack[-1]):
+                opstack.append(terms[0])
+                valuestack.append(terms[1])
+                terms = terms[2:]
+            else:
+                stack_calculate(opstack, valuestack, namespace, loader)
+
+        # now clean out the stacks
+        while opstack:
+            stack_calculate(opstack, valuestack, namespace, loader)
+
+        if len(valuestack) != 1:
+            print("evaluation of expression in Condition.calculate is messed up: final length of stack is not one")
+            #TODO handle this officially
+
+        result = valuestack[0]
+        if isinstance(result, Value):
+            result = result.calculate(namespace, loader)
+        return result
+
+
+class ParenthesizedExpression(_Element):
+    START = re.compile(r'\(\s*(.*)$', re.S)
+    END = re.compile(r'\s*\)(.*)$', re.S)
+
+    def parse(self):
+        self.identity_match(self.START)
+        expression = self.next_element(Expression)
+        self.require_match(self.END, ')')
+        self.calculate = expression.calculate
+
+
+class Condition(_Element):
+    def parse(self):
+        expression = self.next_element(ParenthesizedExpression)
+        self.optional_match(WHITESPACE_TO_END_OF_LINE)
+        self.calculate = expression.calculate
+        # TODO do I need to do anything else here?
+
+
+class End(_Element):
+    END = re.compile(r'#(?:end|{end})(.*)', re.I + re.S)
+
+    def parse(self):
+        self.identity_match(self.END)
+        self.optional_match(WHITESPACE_TO_END_OF_LINE)
