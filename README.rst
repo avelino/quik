@@ -1,4 +1,5 @@
-quik
+====
+Quik
 ====
 
 .. image:: https://travis-ci.org/avelino/quik.png?branch=master
@@ -6,6 +7,16 @@ quik
     :alt: Build Status - Travis CI
 
 A fast and lightweight Python template engine
+
+
+Features
+--------
+
+- Easy to use.
+- High performance.
+- Autoescaping.
+- Template inheritance.
+- Supports native python expressions.
 
 
 Nutshell
@@ -39,11 +50,4 @@ Render via template:
                          loader=loader).encode('utf-8')
 
 
-Features
---------
 
-- Easy to use.
-- High performance.
-- Autoescaping.
-- Template inheritance.
-- Supports native python expressions.
