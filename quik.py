@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import re, operator, os
 try:
-    from cStringIO import StringIO
+    from StringIO import StringIO
 except ImportError:
     from io import StringIO
     xrange = range
