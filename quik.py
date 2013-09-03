@@ -669,3 +669,278 @@ class End(_Element):
     def parse(self):
         self.identity_match(self.END)
         self.optional_match(WHITESPACE_TO_END_OF_LINE)
+
+
+class ElseBlock(_Element):
+    START = re.compile(r'#(?:else|{else})(.*)$', re.S + re.I)
+
+    def parse(self):
+        self.identity_match(self.START)
+        self.block = self.require_next_element(Block, 'block')
+        self.evaluate = self.block.evaluate
+
+
+class ElseifBlock(_Element):
+    START = re.compile(r'#elseif\b\s*(.*)$', re.S + re.I)
+
+    def parse(self):
+        self.identity_match(self.START)
+        self.condition = self.require_next_element(Condition, 'condition')
+        self.block = self.require_next_element(Block, 'block')
+        self.calculate = self.condition.calculate
+        self.evaluate = self.block.evaluate
+
+
+class IfDirective(_Element):
+    START = re.compile(r'#if\b\s*(.*)$', re.S + re.I)
+    else_block = Null()
+
+    def parse(self):
+        self.identity_match(self.START)
+        self.condition = self.next_element(Condition)
+        self.block = self.require_next_element(Block, "block")
+        self.elseifs = []
+        while True:
+            try: self.elseifs.append(self.next_element(ElseifBlock))
+            except NoMatch: break
+        try: self.else_block = self.next_element(ElseBlock)
+        except NoMatch: pass
+        self.require_next_element(End, '#else, #elseif or #end')
+
+    def evaluate(self, stream, namespace, loader):
+        if self.condition.calculate(namespace, loader):
+            self.block.evaluate(stream, namespace, loader)
+        else:
+            for elseif in self.elseifs:
+                if elseif.calculate(namespace, loader):
+                    elseif.evaluate(stream, namespace, loader)
+                    return
+            self.else_block.evaluate(stream, namespace, loader)
+
+
+class Assignment(_Element):
+    START = re.compile(r'\s*\(\s*\$([a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*)*)\s*=\s*(.*)$', re.S + re.I)
+    END = re.compile(r'\s*\)(?:[ \t]*\r?\n)?(.*)$', re.S + re.M)
+
+    def parse(self):
+        var_name, = self.identity_match(self.START)
+        self.terms = var_name.split('.')
+        self.value = self.require_next_element(Expression, "expression")
+        self.require_match(self.END, ')')
+
+    def evaluate(self, stream, namespace, loader):
+        thingy = namespace
+        for term in self.terms[0:-1]:
+            if thingy == None: return
+            look_in_dict = True
+            if not isinstance(thingy, LocalNamespace):
+                try:
+                    thingy = getattr(thingy, term)
+                    look_in_dict = False
+                except AttributeError:
+                    pass
+            if look_in_dict:
+                try: 
+                    thingy = thingy[term]
+                except KeyError: thingy = None
+                except TypeError: thingy = None
+                except AttributeError: thingy = None
+        if thingy is not None:
+            thingy[self.terms[-1]] = self.value.calculate(namespace, loader)
+
+class MacroDefinition(_Element):
+    START = re.compile(r'#macro\b(.*)', re.S + re.I)
+    OPEN_PAREN = re.compile(r'[ \t]*\(\s*(.*)$', re.S)
+    NAME = re.compile(r'\s*([a-z][a-z_0-9]*)\b(.*)', re.S + re.I)
+    CLOSE_PAREN = re.compile(r'[ \t]*\)(.*)$', re.S)
+    ARG_NAME = re.compile(r'[, \t]+\$([a-z][a-z_0-9]*)(.*)$', re.S + re.I)
+    RESERVED_NAMES = ('if', 'else', 'elseif', 'set', 'macro', 'foreach', 'parse', 'include', 'stop', 'end')
+    def parse(self):
+        self.identity_match(self.START)
+        self.require_match(self.OPEN_PAREN, '(')
+        self.macro_name, = self.require_match(self.NAME, 'macro name')
+        if self.macro_name.lower() in self.RESERVED_NAMES:
+            raise self.syntax_error('non-reserved name')
+        self.arg_names = []
+        while True:
+            m = self.next_match(self.ARG_NAME)
+            if not m: break
+            self.arg_names.append(m[0])
+        self.require_match(self.CLOSE_PAREN, ') or arg name')
+        self.optional_match(WHITESPACE_TO_END_OF_LINE)
+        self.block = self.require_next_element(Block, 'block')
+        self.require_next_element(End, 'block')
+
+    def evaluate(self, stream, namespace, loader):
+        global_ns = namespace.top()
+        macro_key = '#' + self.macro_name.lower()
+        if global_ns.get(macro_key, None):
+            raise Exception("cannot redefine macro")
+        global_ns[macro_key] = self
+
+    def execute_macro(self, stream, namespace, arg_value_elements, loader):
+        if len(arg_value_elements) != len(self.arg_names):
+            raise Exception("expected %d arguments, got %d" % (len(self.arg_names), len(arg_value_elements)))
+        macro_namespace = LocalNamespace(namespace)
+        for arg_name, arg_value in zip(self.arg_names, arg_value_elements):
+            macro_namespace[arg_name] = arg_value.calculate(namespace, loader)
+        self.block.evaluate(stream, macro_namespace, loader)
+
+
+class MacroCall(_Element):
+    START = re.compile(r'#([a-z][a-z_0-9]*)\b(.*)', re.S + re.I)
+    OPEN_PAREN = re.compile(r'[ \t]*\(\s*(.*)$', re.S)
+    CLOSE_PAREN = re.compile(r'[ \t]*\)(.*)$', re.S)
+    SPACE_OR_COMMA = re.compile(r'[ \t]*(?:,|[ \t])[ \t]*(.*)$', re.S)
+
+    def parse(self):
+        macro_name, = self.identity_match(self.START)
+        self.macro_name = macro_name.lower()
+        self.args = []
+        if self.macro_name in MacroDefinition.RESERVED_NAMES or self.macro_name.startswith('end'):
+            raise NoMatch()
+        if not self.optional_match(self.OPEN_PAREN):
+            # It's not really a macro call,
+            # it's just a spare pound sign with text after it,
+            # the typical example being a color spec: "#ffffff"
+            # call it not-a-match and then let another thing catch it
+            raise NoMatch()
+        while True:
+            try: self.args.append(self.next_element(Value))
+            except NoMatch: break
+            if not self.optional_match(self.SPACE_OR_COMMA): break
+        self.require_match(self.CLOSE_PAREN, 'argument value or )')
+
+    def evaluate(self, stream, namespace, loader):
+        try: macro = namespace['#' + self.macro_name]
+        except KeyError: raise Exception('no such macro: ' + self.macro_name)
+        macro.execute_macro(stream, namespace, self.args, loader)
+
+
+class IncludeDirective(_Element):
+    START = re.compile(r'#include\b(.*)', re.S + re.I)
+    OPEN_PAREN = re.compile(r'[ \t]*\(\s*(.*)$', re.S)
+    CLOSE_PAREN = re.compile(r'[ \t]*\)(.*)$', re.S)
+
+    def parse(self):
+        self.identity_match(self.START)
+        self.require_match(self.OPEN_PAREN, '(')
+        self.name = self.require_next_element((StringLiteral, InterpolatedStringLiteral, FormalReference), 'template name')
+        self.require_match(self.CLOSE_PAREN, ')')
+
+    def evaluate(self, stream, namespace, loader):
+        stream.write(loader.load_text(self.name.calculate(namespace, loader)))
+
+
+class ParseDirective(_Element):
+    START = re.compile(r'#parse\b(.*)', re.S + re.I)
+    OPEN_PAREN = re.compile(r'[ \t]*\(\s*(.*)$', re.S)
+    CLOSE_PAREN = re.compile(r'[ \t]*\)(.*)$', re.S)
+
+    def parse(self):
+        self.identity_match(self.START)
+        self.require_match(self.OPEN_PAREN, '(')
+        self.name = self.require_next_element((StringLiteral, InterpolatedStringLiteral, FormalReference), 'template name')
+        self.require_match(self.CLOSE_PAREN, ')')
+
+    def evaluate(self, stream, namespace, loader):
+        template = loader.load_template(self.name.calculate(namespace, loader))
+        ## TODO: local namespace?
+        template.merge_to(namespace, stream, loader=loader)
+
+
+class StopDirective(_Element):
+    STOP = re.compile(r'#stop\b(.*)', re.S + re.I)
+
+    def parse(self):
+        self.identity_match(self.STOP)
+
+    def evaluate(self, stream, namespace, loader):
+        if hasattr(stream, 'stop'):
+            stream.stop = True
+
+
+# Represents a SINGLE user-defined directive
+class UserDefinedDirective(_Element):
+    DIRECTIVES = []
+
+    def parse(self):
+        self.directive = self.next_element(self.DIRECTIVES)
+
+    def evaluate(self, stream, namespace, loader):
+        self.directive.evaluate(stream, namespace, loader)
+
+
+class SetDirective(_Element):
+    START = re.compile(r'#set\b(.*)', re.S + re.I)
+
+    def parse(self):
+        self.identity_match(self.START)
+        self.assignment = self.require_next_element(Assignment, 'assignment')
+
+    def evaluate(self, stream, namespace, loader):
+        self.assignment.evaluate(stream, namespace, loader)
+
+
+class ForeachDirective(_Element):
+    START = re.compile(r'#foreach\b(.*)$', re.S + re.I)
+    OPEN_PAREN = re.compile(r'[ \t]*\(\s*(.*)$', re.S)
+    IN = re.compile(r'[ \t]+in[ \t]+(.*)$', re.S)
+    LOOP_VAR_NAME = re.compile(r'\$([a-z_][a-z0-9_]*)(.*)$', re.S + re.I)
+    CLOSE_PAREN = re.compile(r'[ \t]*\)(.*)$', re.S)
+
+    def parse(self):
+        ## Could be cleaner b/c syntax error if no '('
+        self.identity_match(self.START)
+        self.require_match(self.OPEN_PAREN, '(')
+        self.loop_var_name, = self.require_match(self.LOOP_VAR_NAME, 'loop var name')
+        self.require_match(self.IN, 'in')
+        self.value = self.next_element(Value)
+        self.require_match(self.CLOSE_PAREN, ')')
+        self.block = self.next_element(Block)
+        self.require_next_element(End, '#end')
+
+    def evaluate(self, stream, namespace, loader):
+        iterable = self.value.calculate(namespace, loader)
+        counter = 1
+        try:
+            if iterable is None:
+                return
+            if hasattr(iterable, 'keys'): iterable = iterable.keys()
+            if not hasattr(iterable, '__getitem__'):
+                raise ValueError("value for $%s is not iterable in #foreach: %s" % (self.loop_var_name, iterable))
+            for item in iterable:
+                namespace = LocalNamespace(namespace)
+                namespace['velocityCount'] = counter
+                namespace['velocityHasNext'] = counter < len(iterable)
+                namespace[self.loop_var_name] = item
+                self.block.evaluate(stream, namespace, loader)
+                counter += 1
+        except TypeError:
+            raise
+
+
+class TemplateBody(_Element):
+    def parse(self):
+        self.block = self.next_element(Block)
+        if self.next_text():
+            raise self.syntax_error('block element')
+
+    def evaluate(self, stream, namespace, loader):
+        namespace = LocalNamespace(namespace)
+        self.block.evaluate(stream, namespace, loader)
+
+
+class Block(_Element):
+    def parse(self):
+        self.children = []
+        while True:
+            try: self.children.append(self.next_element((Text, FormalReference, Comment, IfDirective, SetDirective,
+                                                         ForeachDirective, IncludeDirective, ParseDirective,
+                                                         MacroDefinition, StopDirective, UserDefinedDirective,
+                                                         MacroCall, FallthroughHashText)))
+            except NoMatch: break
+
+    def evaluate(self, stream, namespace, loader):
+        for child in self.children:
+            child.evaluate(stream, namespace, loader)
