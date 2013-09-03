@@ -11,7 +11,9 @@ A fast and lightweight Python template engine
 Nutshell
 --------
 
-Here a small example of a Quik template::
+Here a small example of a Quik template
+
+.. code-block:: html
 
     <ul>
         #for ($user in $users)
