@@ -1,0 +1,5 @@
+flake8
+coverage
+transifex-client
+coveralls
+sphinx
