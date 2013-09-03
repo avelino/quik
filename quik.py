@@ -8,6 +8,13 @@ except ImportError:
     xrange = range
 
 
+VERSION = (0, 2, 2)
+VERSION_TAG = "dev"
+
+__version__ = "{0}-{1}".format(
+    ".".join(map(str, VERSION)), VERSION_TAG)
+
+
 class Template:
     def __init__(self, content):
         self.content = content
@@ -740,7 +747,7 @@ class Assignment(_Element):
                 except AttributeError:
                     pass
             if look_in_dict:
-                try: 
+                try:
                     thingy = thingy[term]
                 except KeyError: thingy = None
                 except TypeError: thingy = None
@@ -754,7 +761,8 @@ class MacroDefinition(_Element):
     NAME = re.compile(r'\s*([a-z][a-z_0-9]*)\b(.*)', re.S + re.I)
     CLOSE_PAREN = re.compile(r'[ \t]*\)(.*)$', re.S)
     ARG_NAME = re.compile(r'[, \t]+\$([a-z][a-z_0-9]*)(.*)$', re.S + re.I)
-    RESERVED_NAMES = ('if', 'else', 'elseif', 'set', 'macro', 'for', 'parse', 'include', 'stop', 'end')
+    RESERVED_NAMES = ('if', 'else', 'elseif', 'set', 'macro',
+                      'for', 'parse', 'include', 'stop', 'end')
     def parse(self):
         self.identity_match(self.START)
         self.require_match(self.OPEN_PAREN, '(')
