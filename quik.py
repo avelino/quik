@@ -397,3 +397,179 @@ class Value(_Element):
     def calculate(self, namespace, loader):
         return self.expression.calculate(namespace, loader)
 
+
+class NameOrCall(_Element):
+    NAME = re.compile(r'([a-zA-Z0-9_]+)(.*)$', re.S)
+    parameters = None
+
+    def parse(self):
+        self.name, = self.identity_match(self.NAME)
+        try: self.parameters = self.next_element(ParameterList)
+        except NoMatch: pass
+
+    def calculate(self, current_object, loader, top_namespace):
+        look_in_dict = True
+        if not isinstance(current_object, LocalNamespace):
+            try:
+                result = getattr(current_object, self.name)
+                look_in_dict = False
+            except AttributeError:
+                pass
+        if look_in_dict:
+            try: result = current_object[self.name]
+            except KeyError: result = None
+            except TypeError: result = None
+            except AttributeError: result = None
+        if result is None:
+            return None ## TODO: an explicit 'not found' exception?
+        if self.parameters is not None:
+            result = result(*self.parameters.calculate(top_namespace, loader))
+        return result
+
+
+class SubExpression(_Element):
+    DOT = re.compile('\.(.*)', re.S)
+
+    def parse(self):
+        self.identity_match(self.DOT)
+        self.expression = self.next_element(VariableExpression)
+
+    def calculate(self, current_object, loader, global_namespace):
+        return self.expression.calculate(current_object, loader, global_namespace)
+
+
+class VariableExpression(_Element):
+    subexpression = None
+
+    def parse(self):
+        self.part = self.next_element(NameOrCall)
+        try: self.subexpression = self.next_element(SubExpression)
+        except NoMatch: pass
+
+    def calculate(self, namespace, loader, global_namespace=None):
+        if global_namespace is None:
+            global_namespace = namespace
+        value = self.part.calculate(namespace, loader, global_namespace)
+        if self.subexpression:
+            value = self.subexpression.calculate(value, loader, global_namespace)
+        return value
+
+
+class ParameterList(_Element):
+    START = re.compile(r'\(\s*(.*)$', re.S)
+    COMMA = re.compile(r'\s*,\s*(.*)$', re.S)
+    END = re.compile(r'\s*\)(.*)$', re.S)
+    values = _EmptyValues()
+
+    def parse(self):
+        self.identity_match(self.START)
+        try: self.values = self.next_element(ValueList)
+        except NoMatch: pass
+        self.require_match(self.END, ')')
+
+    def calculate(self, namespace, loader):
+        return self.values.calculate(namespace, loader)
+
+
+class FormalReference(_Element):
+    START = re.compile(r'\$(!?)(\{?)(.*)$', re.S)
+    CLOSING_BRACE = re.compile(r'\}(.*)$', re.S)
+
+    def parse(self):
+        self.silent, braces = self.identity_match(self.START)
+        self.expression = self.require_next_element(VariableExpression, 'expression')
+        if braces: self.require_match(self.CLOSING_BRACE, '}')
+        self.calculate = self.expression.calculate
+
+    def evaluate(self, stream, namespace, loader):
+        value = self.expression.calculate(namespace, loader)
+        if value is None:
+            if self.silent: value = ''
+            else: value = self.my_text()
+
+        try:
+            basestring
+            def is_string(s):
+                return isinstance(s, basestring)
+        except NameError:
+            def is_string(s):
+                return type(s) == type('')
+
+        if is_string(value):
+            stream.write(value)
+        else:
+            stream.write(str(value))
+
+
+class Null:
+    def evaluate(self, stream, namespace, loader): pass
+
+
+class Comment(_Element, Null):
+    COMMENT = re.compile('#(?:#.*?(?:\n|$)|\*.*?\*#(?:[ \t]*\n)?)(.*)$', re.M + re.S)
+
+    def parse(self):
+        self.identity_match(self.COMMENT)
+
+
+def boolean_value(variable_value):
+    if variable_value == False:
+        return False
+    return not (variable_value is None)
+
+
+class BinaryOperator(_Element):
+
+    BINARY_OP = re.compile(r'\s*(>=|<=|<|==|!=|>|%|\|\||&&|or|and|\+|\-|\*|\/|\%)\s*(.*)$', re.S)
+    try:
+        operator.__gt__
+    except AttributeError:
+        operator.__gt__ = lambda a, b: a > b
+        operator.__lt__ = lambda a, b: a < b
+        operator.__ge__ = lambda a, b: a >= b
+        operator.__le__ = lambda a, b: a <= b
+        operator.__eq__ = lambda a, b: a == b
+        operator.__ne__ = lambda a, b: a != b
+        operator.mod = lambda a, b: a % b
+
+    OPERATORS = {
+        '>': operator.gt,
+        '>=': operator.ge,
+        '<': operator.lt,
+        '<=': operator.le,
+        '==': operator.eq,
+        '!=': operator.ne,
+        '%': operator.mod,
+        '||': lambda a,b : boolean_value(a) or boolean_value(b),
+        '&&': lambda a,b : boolean_value(a) and boolean_value(b),
+        'or': lambda a,b : boolean_value(a) or boolean_value(b),
+        'and': lambda a,b : boolean_value(a) and boolean_value(b),
+        '+' : operator.add,
+        '-' : operator.sub,
+        '/' : lambda a, b: a / b,
+        '*' : operator.mul}
+    PRECEDENCE = {
+        '>': 2,
+        '<': 2,
+        '==': 2,
+        '>=': 2,
+        '<=': 2,
+        '!=': 2,
+        '||': 1,
+        '&&': 1,
+        'or': 1,
+        'and': 1,
+        '+': 3,
+        '-': 3,
+        '*': 3,
+        '/': 3,
+        '%': 3}
+
+    def parse(self):
+        op_string, = self.identity_match(self.BINARY_OP)
+        self.apply_to = self.OPERATORS[op_string]
+        self.precedence = self.PRECEDENCE[op_string]
+
+    def greater_precedence_than(self, other):
+        return self.precedence > other.precedence
+
