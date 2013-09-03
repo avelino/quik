@@ -138,43 +138,43 @@ class TemplateTestCase(TestCase):
         namespace = {"name": "Steve", "show_greeting": True, "is_birthday": True}
         self.assertEqual("hello Steve.\nHappy Birthday\n.\nOff out later?", template.merge(namespace))
 
-    def test_foreach_with_plain_content_loops_correctly(self):
-        template = quik.Template("#foreach ($name in $names)Hello you. #end")
+    def test_for_with_plain_content_loops_correctly(self):
+        template = quik.Template("#for ($name in $names)Hello you. #end")
         self.assertEqual("Hello you. Hello you. ", template.merge({"names": ["Chris", "Steve"]}))
 
-    def test_foreach_skipped_when_nested_in_a_failing_if(self):
-        template = quik.Template("#if ($false_value)#foreach ($name in $names)Hello you. #end#end")
+    def test_for_skipped_when_nested_in_a_failing_if(self):
+        template = quik.Template("#if ($false_value)#for ($name in $names)Hello you. #end#end")
         self.assertEqual("", template.merge({"false_value": False, "names": ["Chris", "Steve"]}))
 
-    def test_foreach_with_expression_content_loops_correctly(self):
-        template = quik.Template("#foreach ($name in $names)Hello $you. #end")
+    def test_for_with_expression_content_loops_correctly(self):
+        template = quik.Template("#for ($name in $names)Hello $you. #end")
         self.assertEqual("Hello You. Hello You. ", template.merge({"you": "You", "names": ["Chris", "Steve"]}))
 
-    def test_foreach_makes_loop_variable_accessible(self):
-        template = quik.Template("#foreach ($name in $names)Hello $name. #end")
+    def test_for_makes_loop_variable_accessible(self):
+        template = quik.Template("#for ($name in $names)Hello $name. #end")
         self.assertEqual("Hello Chris. Hello Steve. ", template.merge({"names": ["Chris", "Steve"]}))
 
     def test_loop_variable_not_accessible_after_loop(self):
-        template = quik.Template("#foreach ($name in $names)Hello $name. #end$name")
+        template = quik.Template("#for ($name in $names)Hello $name. #end$name")
         self.assertEqual("Hello Chris. Hello Steve. $name", template.merge({"names": ["Chris", "Steve"]}))
 
     def test_loop_variables_do_not_clash_in_nested_loops(self):
-        template = quik.Template("#foreach ($word in $greetings)$word to#foreach ($word in $names) $word#end. #end")
+        template = quik.Template("#for ($word in $greetings)$word to#for ($word in $names) $word#end. #end")
         namespace = {"greetings": ["Hello", "Goodbye"], "names": ["Chris", "Steve"]}
         self.assertEqual("Hello to Chris Steve. Goodbye to Chris Steve. ", template.merge(namespace))
 
     def test_loop_counter_variable_available_in_loops(self):
-        template = quik.Template("#foreach ($word in $greetings)$velocityCount,#end")
+        template = quik.Template("#for ($word in $greetings)$velocityCount,#end")
         namespace = {"greetings": ["Hello", "Goodbye"]}
         self.assertEqual("1,2,", template.merge(namespace))
 
     def test_loop_counter_variables_do_not_clash_in_nested_loops(self):
-        template = quik.Template("#foreach ($word in $greetings)Outer $velocityCount#foreach ($word in $names), inner $velocityCount#end. #end")
+        template = quik.Template("#for ($word in $greetings)Outer $velocityCount#for ($word in $names), inner $velocityCount#end. #end")
         namespace = {"greetings": ["Hello", "Goodbye"], "names": ["Chris", "Steve"]}
         self.assertEqual("Outer 1, inner 1, inner 2. Outer 2, inner 1, inner 2. ", template.merge(namespace))
 
     def test_has_next(self):
-        template = quik.Template("#foreach ($i in [1, 2, 3])$i. #if ($velocityHasNext)yes#end, #end")
+        template = quik.Template("#for ($i in [1, 2, 3])$i. #if ($velocityHasNext)yes#end, #end")
         self.assertEqual("1. yes, 2. yes, 3. , ", template.merge({}))
 
     def test_can_use_an_integer_variable_defined_in_template(self):
@@ -443,7 +443,7 @@ $email
         self.assertEqual('yes', template.merge({'value1': False, 'value2': False}))
 
     def test_cannot_define_macro_to_override_reserved_statements(self):
-        for reserved in ('if', 'else', 'elseif', 'set', 'macro', 'foreach', 'parse', 'include', 'stop', 'end'):
+        for reserved in ('if', 'else', 'elseif', 'set', 'macro', 'for', 'parse', 'include', 'stop', 'end'):
             template = quik.Template('#macro ( %s $value) $value #end' % reserved)
             self.assertRaises(quik.TemplateSyntaxError, template.merge, {})
 
@@ -522,9 +522,9 @@ $email
         self.assertEqual('Message is: hola!', template.merge({'foo': 'foo.tmpl', 'message': 'hola'}, loader=WorkingLoader()))
 
     def test_assign_range_literal(self):
-        template = quik.Template('#set($values = [1..5])#foreach($value in $values)$value,#end')
+        template = quik.Template('#set($values = [1..5])#for($value in $values)$value,#end')
         self.assertEqual('1,2,3,4,5,', template.merge({}))
-        template = quik.Template('#set($values = [2..-2])#foreach($value in $values)$value,#end')
+        template = quik.Template('#set($values = [2..-2])#for($value in $values)$value,#end')
         self.assertEqual('2,1,0,-1,-2,', template.merge({}))
 
     def test_local_namespace_methods_are_not_available_in_context(self):
@@ -532,7 +532,7 @@ $email
         self.assertEqual('$values', template.merge({}))
 
     def test_array_literal(self):
-        template = quik.Template('blah\n#set($valuesInList = ["Hello ", $person, ", your lucky number is ", 7])\n#foreach($value in $valuesInList)$value#end\n\nblah')
+        template = quik.Template('blah\n#set($valuesInList = ["Hello ", $person, ", your lucky number is ", 7])\n#for($value in $valuesInList)$value#end\n\nblah')
         self.assertEqual('blah\nHello Chris, your lucky number is 7\nblah', template.merge({'person': 'Chris'}))
 
     def test_dictionary_literal(self):
@@ -547,7 +547,7 @@ $email
         self.assertEqual('blue food', template.merge(ns))
 
     def test_nested_array_literals(self):
-        template = quik.Template('#set($values = [["Hello ", "Steve"], ["Hello", " Chris"]])#foreach($pair in $values)#foreach($word in $pair)$word#end. #end')
+        template = quik.Template('#set($values = [["Hello ", "Steve"], ["Hello", " Chris"]])#for($pair in $values)#for($word in $pair)$word#end. #end')
         self.assertEqual('Hello Steve. Hello Chris. ', template.merge({}))
 
     def test_when_dictionary_does_not_contain_referenced_attribute_no_substitution_occurs(self):
@@ -588,12 +588,12 @@ $email
         template = quik.Template(text)
         self.assertEqual(text, template.merge({}))
 
-    def test_foreach_with_unset_variable_expands_to_nothing(self):
-        template = quik.Template('#foreach($value in $values)foo#end')
+    def test_for_with_unset_variable_expands_to_nothing(self):
+        template = quik.Template('#for($value in $values)foo#end')
         self.assertEqual('', template.merge({}))
 
-    def test_foreach_with_non_iterable_variable_raises_error(self):
-        template = quik.Template('#foreach($value in $values)foo#end')
+    def test_for_with_non_iterable_variable_raises_error(self):
+        template = quik.Template('#for($value in $values)foo#end')
         self.assertRaises(ValueError, template.merge, {'values': 1})
 
     def test_correct_scope_for_parameters_of_method_calls(self):
@@ -623,15 +623,15 @@ $email
         self.assertEqual('...', template.merge({}))
 
     def test_can_loop_over_numeric_ranges(self):
-        template = quik.Template('#foreach( $v in [1..5] )$v\n#end')
+        template = quik.Template('#for( $v in [1..5] )$v\n#end')
         self.assertEqual('1\n2\n3\n4\n5\n', template.merge({}))
 
     def test_can_loop_over_numeric_ranges_backwards(self):
-        template = quik.Template('#foreach( $v in [5..-2] )$v,#end')
+        template = quik.Template('#for( $v in [5..-2] )$v,#end')
         self.assertEqual('5,4,3,2,1,0,-1,-2,', template.merge({}))
 
     def test_ranges_over_references(self):
-        template = quik.Template("#set($start = 1)#set($end = 5)#foreach($i in [$start .. $end])$i-#end")
+        template = quik.Template("#set($start = 1)#set($end = 5)#for($i in [$start .. $end])$i-#end")
         self.assertEqual('1-2-3-4-5-', template.merge({}))
 
     def test_user_defined_directive(self):

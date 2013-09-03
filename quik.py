@@ -754,7 +754,7 @@ class MacroDefinition(_Element):
     NAME = re.compile(r'\s*([a-z][a-z_0-9]*)\b(.*)', re.S + re.I)
     CLOSE_PAREN = re.compile(r'[ \t]*\)(.*)$', re.S)
     ARG_NAME = re.compile(r'[, \t]+\$([a-z][a-z_0-9]*)(.*)$', re.S + re.I)
-    RESERVED_NAMES = ('if', 'else', 'elseif', 'set', 'macro', 'foreach', 'parse', 'include', 'stop', 'end')
+    RESERVED_NAMES = ('if', 'else', 'elseif', 'set', 'macro', 'for', 'parse', 'include', 'stop', 'end')
     def parse(self):
         self.identity_match(self.START)
         self.require_match(self.OPEN_PAREN, '(')
@@ -882,8 +882,8 @@ class SetDirective(_Element):
         self.assignment.evaluate(stream, namespace, loader)
 
 
-class ForeachDirective(_Element):
-    START = re.compile(r'#foreach\b(.*)$', re.S + re.I)
+class ForDirective(_Element):
+    START = re.compile(r'#for\b(.*)$', re.S + re.I)
     OPEN_PAREN = re.compile(r'[ \t]*\(\s*(.*)$', re.S)
     IN = re.compile(r'[ \t]+in[ \t]+(.*)$', re.S)
     LOOP_VAR_NAME = re.compile(r'\$([a-z_][a-z0-9_]*)(.*)$', re.S + re.I)
@@ -908,7 +908,7 @@ class ForeachDirective(_Element):
                 return
             if hasattr(iterable, 'keys'): iterable = iterable.keys()
             if not hasattr(iterable, '__getitem__'):
-                raise ValueError("value for $%s is not iterable in #foreach: %s" % (self.loop_var_name, iterable))
+                raise ValueError("value for $%s is not iterable in #for: %s" % (self.loop_var_name, iterable))
             for item in iterable:
                 namespace = LocalNamespace(namespace)
                 namespace['velocityCount'] = counter
@@ -936,7 +936,7 @@ class Block(_Element):
         self.children = []
         while True:
             try: self.children.append(self.next_element((Text, FormalReference, Comment, IfDirective, SetDirective,
-                                                         ForeachDirective, IncludeDirective, ParseDirective,
+                                                         ForDirective, IncludeDirective, ParseDirective,
                                                          MacroDefinition, StopDirective, UserDefinedDirective,
                                                          MacroCall, FallthroughHashText)))
             except NoMatch: break
