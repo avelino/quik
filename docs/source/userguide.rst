@@ -163,7 +163,7 @@ When Quik encounters an undefined reference, its normal behavior is to output th
 
     <input type="text" name="email" value="@email"/>
 
-When the form initially loads, the variable reference @email has no value, but you prefer a blank text field to one with a value of "@email". Using the quiet reference notation circumvents Velocity's normal behavior; instead of using @email in the QTL you would use !@email. So the above example would look like the following:
+When the form initially loads, the variable reference @email has no value, but you prefer a blank text field to one with a value of "@email". Using the quiet reference notation circumvents Quik's normal behavior; instead of using @email in the QTL you would use !@email. So the above example would look like the following:
 
 .. code-block:: html
 
@@ -176,3 +176,76 @@ Formal and quiet reference notation can be used together, as demonstrated below.
 .. code-block:: html
 
     <input type="text" name="email" value="@!{email}"/>
+
+
+Conditionals
+============
+
+**If / ElseIf / Else**
+
+The #if directive in Quik allows for text to be included when the web page is generated, on the conditional that the if statement is true. For example:
+
+.. code-block:: html
+
+    #if( @foo )
+       <strong>Quik!</strong>
+    #end
+
+The variable @foo is evaluated to determine whether it is true, which will happen under one of two circumstances: (i) @foo is a boolean (true/false) which has a true value, or (ii) the value is not null. Remember that the Quik context only contains Objects, so when we say 'boolean', it will be represented as a Boolean (the class). This is true even for methods that return *boolean* - the introspection infrastructure will return a *Boolean* of the same logical value.
+
+The content between the #if and the #end statements become the output if the evaluation is true. In this case, if @foo is true, the output will be: "Quik!". Conversely, if @foo has a null value, or if it is a boolean false, the statement evaluates as false, and there is no output.
+
+An #elseif or #else element can be used with an #if element. Note that the Quik Templating Engine will stop at the first expression that is found to be true. In the following example, suppose that @foo has a value of 15 and @bar has a value of 6.
+
+.. code-block:: html
+
+    #if( @foo < 10 )
+        <strong>Go North</strong>
+    #elseif( @foo == 10 )
+        <strong>Go East</strong>
+    #elseif( @bar == 6 )
+        <strong>Go South</strong>
+    #else
+        <strong>Go West</strong>
+    #end
+
+In this example, @foo is greater than 10, so the first two comparisons fail. Next @bar is compared to 6, which is true, so the output is Go South.
+
+Relational and Logical Operators
+--------------------------------
+
+Quik has logical AND, OR and NOT operators as well. For further information, please see the QTL Reference Guide Below are examples demonstrating the use of the logical AND, OR and NOT operators.
+
+.. code-block:: html
+
+    ## logical AND
+
+    #if( @foo && @bar )
+        <strong>This AND that</strong>
+    #end
+
+The #if() directive will only evaluate to true if both @foo and @bar are true. If @foo is false, the expression will evaluate to false; @bar will not be evaluated. If @foo is true, the Quik Templating Engine will then check the value of @bar; if @bar is true, then the entire expression is true and This AND that becomes the output. If @bar is false, then there will be no output as the entire expression is false.
+
+Logical OR operators work the same way, except only one of the references need evaluate to true in order for the entire expression to be considered true. Consider the following example.
+
+.. code-block:: html
+
+    ## logical OR
+
+    #if( @foo || @bar )
+        <strong>This OR That</strong>
+    #end
+
+If @foo is true, the Quik Templating Engine has no need to look at @bar; whether @bar is true or false, the expression will be true, and This OR That will be output. If @foo is false, however, @bar must be checked. In this case, if @bar is also false, the expression evaluates to false and there is no output. On the other hand, if @bar is true, then the entire expression is true, and the output is This OR That
+
+With logical NOT operators, there is only one argument :
+
+.. code-block:: html
+
+    ##logical NOT
+
+    #if( !@foo )
+        <strong>NOT that</strong>
+    #end
+
+Here, the if @foo is true, then !@foo evaluates to false, and there is no output. If @foo is false, then !@foo evaluates to true and **NOT that** will be output. Be careful not to confuse this with the quiet reference @!foo which is something altogether different.
