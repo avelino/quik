@@ -346,7 +346,7 @@ Anything that can be put into a QTL template can go into the body of a macro. Th
     #set( @color = "blue" )
     <table>
         #tablerows( @color @greatlakes )
-    </table>table>
+    </table>
 
 Notice that @greatlakes takes the place of @somelist. When the #tablerows macro is called in this situation, the following output is generated:
 
