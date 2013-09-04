@@ -307,4 +307,54 @@ The *#stop* script element allows the template designer to stop the execution of
     #stop
 
 
+Macros
+======
 
+The *#macro* script element allows template designers to define a repeated segment of a QTL template. Macros are very useful in a wide range of scenarios both simple and complex. This macro, created for the sole purpose of saving keystrokes and minimizing typographic errors, provides an introduction to the concept of macros.
+
+.. code-block:: html
+
+    #macro( tr )
+    <tr><td></tr></tr>
+    #end
+
+The macro being defined in this example is *tr*, and it can be called in a manner analogous to any other QTL directive:
+
+.. code-block:: html
+
+    #tr
+
+When this template is called, Quik would replace *#tr()* with a row containing a single, empty data cell.
+
+A macro could take any number of arguments -- even zero arguments, as demonstrated in the first example, is an option -- but when the macro is invoked, it must be called with the same number of arguments with which it was defined. Many macros are more involved than the one defined above. Here is a macro that takes two arguments, a color and an list.
+
+.. code-block:: html
+
+    #macro( tablerows @color @somelist )
+        #for( @something in @somelist )
+        <tr><td bgcolor=@color>@something</td></tr>
+        #end
+    #end
+
+The macro being defined in this example, tablerows, takes two arguments. The first argument takes the place of @color, and the second argument takes the place of @somelist.
+
+Anything that can be put into a QTL template can go into the body of a macro. The tablerows macro is a for statement. There are two #end statements in the definition of the #tablerows macro; the first belongs to the #for, the second ends the macro definition.
+
+.. code-block:: html
+
+    #set( @greatlakes = ["Superior","Michigan","Huron","Erie","Ontario"] )
+    #set( @color = "blue" )
+    <table>
+        #tablerows( @color @greatlakes )
+    </table>table>
+
+Notice that @greatlakes takes the place of @somelist. When the #tablerows macro is called in this situation, the following output is generated:
+
+.. code-block:: html
+    <table>
+        <tr><td bgcolor="blue">Superior</td></tr>
+        <tr><td bgcolor="blue">Michigan</td></tr>
+        <tr><td bgcolor="blue">Huron</td></tr>
+        <tr><td bgcolor="blue">Erie</td></tr>
+        <tr><td bgcolor="blue">Ontario</td></tr>
+    </table>
