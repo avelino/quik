@@ -295,3 +295,16 @@ The file to which the *#include* directive refers is enclosed in quotes. If more
 .. code-block:: html
 
     #include( "content.html", "tree.xml", "quik.gif" )
+
+
+Stop
+====
+
+The *#stop* script element allows the template designer to stop the execution of the template engine and return. This is useful for debugging purposes.
+
+.. code-block:: html
+
+    #stop
+
+
+
