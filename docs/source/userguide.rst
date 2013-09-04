@@ -351,6 +351,7 @@ Anything that can be put into a QTL template can go into the body of a macro. Th
 Notice that @greatlakes takes the place of @somelist. When the #tablerows macro is called in this situation, the following output is generated:
 
 .. code-block:: html
+
     <table>
         <tr><td bgcolor="blue">Superior</td></tr>
         <tr><td bgcolor="blue">Michigan</td></tr>
