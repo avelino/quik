@@ -46,8 +46,8 @@ Render via template:
 
     loader = CachingFileLoader('html')
     template = loader.load_template('index.html')
-    print template.merge({'author': 'Thiago Avelino'},
-                         loader=loader).encode('utf-8')
+    print template.render({'author': 'Thiago Avelino'},
+                          loader=loader).encode('utf-8')
 
 
 
