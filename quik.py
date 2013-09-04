@@ -20,7 +20,7 @@ class Template:
         self.content = content
         self.root_element = None
 
-    def merge(self, namespace, loader=None):
+    def render(self, namespace, loader=None):
         output = StoppableStream()
         self.merge_to(namespace, output, loader)
         return output.getvalue()
@@ -30,7 +30,8 @@ class Template:
             self.root_element = TemplateBody(self.content)
 
     def merge_to(self, namespace, fileobj, loader=None):
-        if loader is None: loader = NullLoader()
+        if loader is None:
+            loader = NullLoader()
         self.ensure_compiled()
         self.root_element.evaluate(fileobj, namespace, loader)
 
@@ -87,12 +88,15 @@ class CachingFileLoader:
         if self.debugging:
             print("Loading text from {0} {1}".format(self.basedir, name))
         f = open(self.filename_of(name))
-        try: return f.read()
-        finally: f.close()
+        try:
+            return f.read()
+        finally:
+            f.close()
 
     def load_template(self, name):
         if self.debugging:
             print("Loading template... {0}".format(name))
+
         mtime = os.path.getmtime(self.filename_of(name))
         if self.known_templates.get(name, None):
             template, prev_mtime = self.known_templates[name]
