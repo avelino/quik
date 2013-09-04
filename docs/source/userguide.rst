@@ -358,3 +358,5 @@ Notice that @greatlakes takes the place of @somelist. When the #tablerows macro 
         <tr><td bgcolor="blue">Erie</td></tr>
         <tr><td bgcolor="blue">Ontario</td></tr>
     </table>
+
+Return macro
