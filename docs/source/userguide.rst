@@ -249,3 +249,32 @@ With logical NOT operators, there is only one argument :
     #end
 
 Here, the if @foo is true, then !@foo evaluates to false, and there is no output. If @foo is false, then !@foo evaluates to true and **NOT that** will be output. Be careful not to confuse this with the quiet reference @!foo which is something altogether different.
+
+
+Loops
+=====
+
+**For Loop**
+
+The *#for* element allows for looping. For example:
+
+.. code-block:: html
+
+    <ul>
+        #for( @product in @products )
+        <li>@product</li>
+        #end
+    </ul>
+
+This #for loop causes the @products list (the object) to be looped over for all of the products (targets) in the list. Each time through the loop, the value from @products is placed into the @product variable.
+
+The contents of the @products variable is a List, or an QuerySet. The value assigned to the @product variable is a Python Object and can be referenced from a variable as such. For example, if @product was really a Product class in Python, its name could be retrieved by referencing the @product.name method.
+
+Lets say that @products is a Hashtable. If you wanted to retrieve the key values for the Hashtable as well as the objects within the Hashtable, you can use code like this:
+
+.. code-block:: html
+    <ul>
+        #for( @product in @products )
+        <li>Key: @product.id -> Value: @products.get(@product.id)</li>
+        #end
+    </ul>
