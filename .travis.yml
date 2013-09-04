@@ -6,7 +6,7 @@ python:
   - "3.3"
 install:
   - python setup.py install
-script: python tests.py
+script: python tests/runtest.py
 notifications:
   irc: "irc.freenode.org#quikpy"
   on_success: "never"
