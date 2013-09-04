@@ -273,8 +273,25 @@ The contents of the @products variable is a List, or an QuerySet. The value assi
 Lets say that @products is a Hashtable. If you wanted to retrieve the key values for the Hashtable as well as the objects within the Hashtable, you can use code like this:
 
 .. code-block:: html
+
     <ul>
         #for( @product in @products )
         <li>Key: @product.id -> Value: @products.get(@product.id)</li>
         #end
     </ul>
+
+
+Include
+=======
+
+The *#include* script element allows the template designer to import a local file, which is then inserted into the location where the #include directive is defined. The contents of the file are not rendered through the template engine. For security reasons, the file to be included may only be under TEMPLATE_ROOT.
+
+.. code-block:: html
+
+    #include( "content.html" )
+
+The file to which the *#include* directive refers is enclosed in quotes. If more than one file will be included, they should be separated by commas.
+
+.. code-block:: html
+
+    #include( "content.html", "tree.xml", "quik.gif" )
