@@ -42,9 +42,9 @@ Render via template:
 
 .. code-block:: python
 
-    from quik import CachingFileLoader
+    from quik import FileLoader
 
-    loader = CachingFileLoader('html')
+    loader = FileLoader('html')
     template = loader.load_template('index.html')
     print template.render({'author': 'Thiago Avelino'},
                           loader=loader).encode('utf-8')

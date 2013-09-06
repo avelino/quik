@@ -73,7 +73,7 @@ class NullLoader:
         raise self.load_text(name)
 
 
-class CachingFileLoader:
+class FileLoader:
     def __init__(self, basedir, debugging=False):
         self.basedir = basedir
         self.known_templates = {}
