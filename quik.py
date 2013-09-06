@@ -896,10 +896,10 @@ class SetDirective(_Element):
 
 class ForDirective(_Element):
     START = re.compile(r'#for\b(.*)$', re.S + re.I)
-    OPEN_PAREN = re.compile(r'[ \t]*\(\s*(.*)$', re.S)
+    OPEN_PAREN = re.compile(r'[ \t]\s*(.*)$', re.S)
     IN = re.compile(r'[ \t]+in[ \t]+(.*)$', re.S)
     LOOP_VAR_NAME = re.compile(r'\@([a-z_][a-z0-9_]*)(.*)$', re.S + re.I)
-    CLOSE_PAREN = re.compile(r'[ \t]*\)(.*)$', re.S)
+    CLOSE_PAREN = re.compile(r'[ \t]*\:(.*)$', re.S)
 
     def parse(self):
         ## Could be cleaner b/c syntax error if no '('
