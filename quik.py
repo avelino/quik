@@ -761,9 +761,9 @@ class Assignment(_Element):
 
 class MacroDefinition(_Element):
     START = re.compile(r'#macro\b(.*)', re.S + re.I)
-    OPEN_PAREN = re.compile(r'[ \t]*\(\s*(.*)$', re.S)
+    OPEN_PAREN = re.compile(r'[ \t]\s*(.*)$', re.S)
     NAME = re.compile(r'\s*([a-z][a-z_0-9]*)\b(.*)', re.S + re.I)
-    CLOSE_PAREN = re.compile(r'[ \t]*\)(.*)$', re.S)
+    CLOSE_PAREN = re.compile(r'[ \t]*\:(.*)$', re.S)
     ARG_NAME = re.compile(r'[, \t]+\@([a-z][a-z_0-9]*)(.*)$', re.S + re.I)
     RESERVED_NAMES = ('if', 'else', 'elseif', 'set', 'macro',
                       'for', 'parse', 'include', 'stop', 'end')
