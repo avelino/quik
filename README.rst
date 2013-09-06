@@ -27,8 +27,8 @@ Here a small example of a Quik template
 .. code-block:: html
 
     <ul>
-        #for (@user in @users)
-            #if(@user.age > 18)
+        #for @user in @users
+            #if @user.age > 18:
             <li><a href="@user.url">@user.username</a></li>
             #end
         #end
