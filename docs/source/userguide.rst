@@ -20,7 +20,7 @@ Once a value has been assigned to a variable, you can reference the variable any
 
     <html>
         <body>
-            #set( @foo = "Quik" )
+            #set @foo = "Quik":
             Hello @foo World!
         </body>
     <html>
@@ -111,7 +111,7 @@ When QTL references a variable, such as @foo, the variable can get its value fro
 
 .. code-block:: html
 
-    #set( @foo = "bar" )
+    #set @foo = "bar" :
 
 
 The output will be the same for all instances of @foo that follow this directive.
@@ -187,7 +187,7 @@ The #if directive in Quik allows for text to be included when the web page is ge
 
 .. code-block:: html
 
-    #if( @foo )
+    #if @foo:
        <strong>Quik!</strong>
     #end
 
@@ -199,11 +199,11 @@ An #elseif or #else element can be used with an #if element. Note that the Quik 
 
 .. code-block:: html
 
-    #if( @foo < 10 )
+    #if @foo < 10:
         <strong>Go North</strong>
-    #elseif( @foo == 10 )
+    #elseif @foo == 10:
         <strong>Go East</strong>
-    #elseif( @bar == 6 )
+    #elseif: @bar == 6:
         <strong>Go South</strong>
     #else
         <strong>Go West</strong>
@@ -220,7 +220,7 @@ Quik has logical AND, OR and NOT operators as well. For further information, ple
 
     ## logical AND
 
-    #if( @foo && @bar )
+    #if @foo && @bar:
         <strong>This AND that</strong>
     #end
 
@@ -232,7 +232,7 @@ Logical OR operators work the same way, except only one of the references need e
 
     ## logical OR
 
-    #if( @foo || @bar )
+    #if @foo || @bar:
         <strong>This OR That</strong>
     #end
 
@@ -244,7 +244,7 @@ With logical NOT operators, there is only one argument :
 
     ##logical NOT
 
-    #if( !@foo )
+    #if !@foo :
         <strong>NOT that</strong>
     #end
 
@@ -261,7 +261,7 @@ The *#for* element allows for looping. For example:
 .. code-block:: html
 
     <ul>
-        #for( @product in @products )
+        #for @product in @products:
         <li>@product</li>
         #end
     </ul>
@@ -275,7 +275,7 @@ Lets say that @products is a Hashtable. If you wanted to retrieve the key values
 .. code-block:: html
 
     <ul>
-        #for( @product in @products )
+        #for @product in @products:
         <li>Key: @product.id -> Value: @products.get(@product.id)</li>
         #end
     </ul>
@@ -314,7 +314,7 @@ The *#macro* script element allows template designers to define a repeated segme
 
 .. code-block:: html
 
-    #macro( tr )
+    #macro tr:
     <tr><td></tr></tr>
     #end
 
@@ -322,7 +322,7 @@ The macro being defined in this example is *tr*, and it can be called in a manne
 
 .. code-block:: html
 
-    #tr
+    #tr :
 
 When this template is called, Quik would replace *#tr()* with a row containing a single, empty data cell.
 
@@ -330,8 +330,8 @@ A macro could take any number of arguments -- even zero arguments, as demonstrat
 
 .. code-block:: html
 
-    #macro( tablerows @color @somelist )
-        #for( @something in @somelist )
+    #macro tablerows @color @somelist:
+        #for @something in @somelist:
         <tr><td bgcolor=@color>@something</td></tr>
         #end
     #end
@@ -342,10 +342,10 @@ Anything that can be put into a QTL template can go into the body of a macro. Th
 
 .. code-block:: html
 
-    #set( @greatlakes = ["Superior","Michigan","Huron","Erie","Ontario"] )
-    #set( @color = "blue" )
+    #set @greatlakes = ["Superior","Michigan","Huron","Erie","Ontario"]:
+    #set @color = "blue":
     <table>
-        #tablerows( @color @greatlakes )
+        #tablerows @color @greatlakes:
     </table>
 
 Notice that @greatlakes takes the place of @somelist. When the #tablerows macro is called in this situation, the following output is generated:
