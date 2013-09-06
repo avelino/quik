@@ -9,10 +9,12 @@ except ImportError:
 
 
 VERSION = (0, 2, 2)
-VERSION_TAG = "dev"
+VERSION_TAG = None
 
-__version__ = "{0}-{1}".format(
-    ".".join(map(str, VERSION)), VERSION_TAG)
+__version__ = ".".join(map(str, VERSION))
+if VERSION_TAG:
+    __version__ = "{0}-{1}".format(
+        __version__, VERSION_TAG)
 
 
 class Template:
