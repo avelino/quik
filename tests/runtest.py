@@ -126,11 +126,11 @@ class TemplateTestCase(TestCase):
         self.assertEqual('yes', template.render({'v': BooleanValue(True)}))
 
     def test_understands_boolean_literal_true(self):
-        template = quik.Template("#set (@v = true)@v")
+        template = quik.Template("#set @v = true:@v")
         self.assertEqual('True', template.render({}))
 
     def test_understands_boolean_literal_false(self):
-        template = quik.Template("#set (@v = false)@v")
+        template = quik.Template("#set @v = false:@v")
         self.assertEqual('False', template.render({}))
 
     def test_new_lines_in_templates_are_permitted(self):
@@ -178,21 +178,21 @@ class TemplateTestCase(TestCase):
         self.assertEqual("1. yes, 2. yes, 3. , ", template.render({}))
 
     def test_can_use_an_integer_variable_defined_in_template(self):
-        template = quik.Template("#set (@value = 10)@value")
+        template = quik.Template("#set @value = 10:@value")
         self.assertEqual("10", template.render({}))
 
     def test_passed_in_namespace_not_modified_by_set(self):
-        template = quik.Template("#set (@value = 10)@value")
+        template = quik.Template("#set @value = 10:@value")
         namespace = {}
         template.render(namespace)
         self.assertEqual({}, namespace)
 
     def test_can_use_a_string_variable_defined_in_template(self):
-        template = quik.Template('#set (@value = "Steve")@value')
+        template = quik.Template('#set @value = "Steve":@value')
         self.assertEqual("Steve", template.render({}))
 
     def test_can_use_a_single_quoted_string_variable_defined_in_template(self):
-        template = quik.Template("#set (@value = 'Steve')@value")
+        template = quik.Template("#set @value = 'Steve':@value")
         self.assertEqual("Steve", template.render({}))
 
     def test_single_line_comments_skipped(self):
@@ -214,11 +214,11 @@ class TemplateTestCase(TestCase):
         self.assertEqual('Hello Chris!', output.getvalue())
 
     def test_string_literal_can_contain_embedded_escaped_quotes(self):
-        template = quik.Template('#set (@name = "\\"batman\\"")@name')
+        template = quik.Template('#set @name = "\\"batman\\"":@name')
         self.assertEqual('"batman"', template.render({}))
 
     def test_string_literal_can_contain_embedded_escaped_newlines(self):
-        template = quik.Template('#set (@name = "\\\\batman\\nand robin")@name')
+        template = quik.Template('#set @name = "\\\\batman\\nand robin":@name')
         self.assertEqual('\\batman\nand robin', template.render({}))
 
     def test_else_block_evaluated_when_if_expression_false(self):
@@ -261,7 +261,7 @@ class TemplateTestCase(TestCase):
 
     def test_velocity_style_escaping(self):
         template = quik.Template('''\
-#set( @email = "foo" )
+#set @email = "foo" :
 @email
 \\@email
 \\\\@email
@@ -526,9 +526,9 @@ foo
         self.assertEqual('Message is: hola!', template.render({'foo': 'foo.tmpl', 'message': 'hola'}, loader=WorkingLoader()))
 
     def test_assign_range_literal(self):
-        template = quik.Template('#set(@values = [1..5])#for @value in @values:@value,#end')
+        template = quik.Template('#set @values = [1..5]:#for @value in @values:@value,#end')
         self.assertEqual('1,2,3,4,5,', template.render({}))
-        template = quik.Template('#set(@values = [2..-2])#for @value in @values:@value,#end')
+        template = quik.Template('#set @values = [2..-2]:#for @value in @values:@value,#end')
         self.assertEqual('2,1,0,-1,-2,', template.render({}))
 
     def test_local_namespace_methods_are_not_available_in_context(self):
@@ -536,13 +536,13 @@ foo
         self.assertEqual('@values', template.render({}))
 
     def test_array_literal(self):
-        template = quik.Template('blah\n#set(@valuesInList = ["Hello ", @person, ", your lucky number is ", 7])\n#for @value in @valuesInList:@value#end\n\nblah')
+        template = quik.Template('blah\n#set @valuesInList = ["Hello ", @person, ", your lucky number is ", 7]:\n#for @value in @valuesInList:@value#end\n\nblah')
         self.assertEqual('blah\nHello Chris, your lucky number is 7\nblah', template.render({'person': 'Chris'}))
 
     def test_dictionary_literal(self):
-        template = quik.Template('#set(@a = {"dog": "cat" , "horse":15})@a.dog')
+        template = quik.Template('#set @a = {"dog": "cat" , "horse":15}:@a.dog')
         self.assertEqual('cat', template.render({}))
-        template = quik.Template('#set(@a = {"dog": "@horse"})@a.dog')
+        template = quik.Template('#set @a = {"dog": "@horse"}:@a.dog')
         self.assertEqual('cow', template.render({'horse':'cow'}))
 
     def test_dictionary_literal_as_parameter(self):
@@ -551,7 +551,7 @@ foo
         self.assertEqual('blue food', template.render(ns))
 
     def test_nested_array_literals(self):
-        template = quik.Template('#set(@values = [["Hello ", "Steve"], ["Hello", " Chris"]])#for @pair in @values:#for @word in @pair:@word#end. #end')
+        template = quik.Template('#set @values = [["Hello ", "Steve"], ["Hello", " Chris"]]:#for @pair in @values:#for @word in @pair:@word#end. #end')
         self.assertEqual('Hello Steve. Hello Chris. ', template.render({}))
 
     def test_when_dictionary_does_not_contain_referenced_attribute_no_substitution_occurs(self):
@@ -565,15 +565,15 @@ foo
         self.assertEqual(" @user.name ", template.render({'user':MyObject()}))
 
     def test_variables_expanded_in_double_quoted_strings(self):
-        template = quik.Template('#set(@hello="hello, @name is my name")@hello')
+        template = quik.Template('#set @hello="hello, @name is my name":@hello')
         self.assertEqual("hello, Steve is my name", template.render({'name':'Steve'}))
 
     def test_escaped_variable_references_not_expanded_in_double_quoted_strings(self):
-        template = quik.Template('#set(@hello="hello, \\@name is my name")@hello')
+        template = quik.Template('#set @hello="hello, \\@name is my name":@hello')
         self.assertEqual("hello, @name is my name", template.render({'name':'Steve'}))
 
     def test_macros_expanded_in_double_quoted_strings(self):
-        template = quik.Template('#macro hi @person:@person says hello#end#set(@hello="#hi @name:")@hello')
+        template = quik.Template('#macro hi @person:@person says hello#end#set @hello="#hi @name:":@hello')
         self.assertEqual("Steve says hello", template.render({'name':'Steve'}))
 
     def test_color_spec(self):
@@ -620,11 +620,11 @@ foo
         self.assertEqual('works', template.render({}, loader=Loader()))
 
     def test_modulus_operator(self):
-        template = quik.Template('#set( @modulus = (@value % 2) )@modulus')
+        template = quik.Template('#set @modulus = (@value % 2) :@modulus')
         self.assertEqual('1', template.render({'value': 3}))
 
     def test_can_assign_empty_string(self):
-        template = quik.Template('#set( @v = "" )#set( @y = \'\' ).@v.@y.')
+        template = quik.Template('#set @v = "" :#set @y = \'\' :.@v.@y.')
         self.assertEqual('...', template.render({}))
 
     def test_can_loop_over_numeric_ranges(self):
@@ -636,7 +636,7 @@ foo
         self.assertEqual('5,4,3,2,1,0,-1,-2,', template.render({}))
 
     def test_ranges_over_references(self):
-        template = quik.Template("#set(@start = 1)#set(@end = 5)#for @i in [@start .. @end]:@i-#end")
+        template = quik.Template("#set @start = 1:#set @end = 5:#for @i in [@start .. @end]:@i-#end")
         self.assertEqual('1-2-3-4-5-', template.render({}))
 
     def test_user_defined_directive(self):
@@ -660,35 +660,35 @@ foo
 
 
     def test_assignment_of_parenthesized_math_expression(self):
-        template = quik.Template('#set(@a = (5 + 4))@a')
+        template = quik.Template('#set @a = (5 + 4):@a')
         self.assertEqual('9', template.render({}))
 
     def test_assignment_of_parenthesized_math_expression_with_reference(self):
-        template = quik.Template('#set(@b = 5)#set(@a = (@b + 4))@a')
+        template = quik.Template('#set @b = 5:#set @a = (@b + 4):@a')
         self.assertEqual('9', template.render({}))
 
     def test_recursive_macro(self):
-        template = quik.Template('#macro recur @number:#if (@number > 0)#set(@number = @number - 1)#recur @number:X#end#end#recur 5:')
+        template = quik.Template('#macro recur @number:#if (@number > 0)#set @number = @number - 1:#recur @number:X#end#end#recur 5:')
         self.assertEqual('XXXXX', template.render({}))
 
     def test_addition_has_higher_precedence_than_comparison(self):
-        template = quik.Template('#set(@a = 4 > 2 + 5)@a')
+        template = quik.Template('#set @a = 4 > 2 + 5:@a')
         self.assertEqual('False', template.render({}))
 
     def test_parentheses_work(self):
-        template = quik.Template('#set(@a = (5 + 4) > 2)@a')
+        template = quik.Template('#set @a = (5 + 4) > 2:@a')
         self.assertEqual('True', template.render({}))
 
     def test_addition_has_higher_precedence_than_comparison_other_direction(self):
-        template = quik.Template('#set(@a = 5 + 4 > 2)@a')
+        template = quik.Template('#set @a = 5 + 4 > 2:@a')
         self.assertEqual('True', template.render({}))
 
     def test_multiplication_has_higher_precedence_than_addition(self):
-        template = quik.Template("#set(@a = 5 * 4 - 2)@a")
+        template = quik.Template("#set @a = 5 * 4 - 2:@a")
         self.assertEqual('18', template.render({}))
 
     def test_parse_empty_dictionary(self):
-        template = quik.Template('#set(@a = {})@a')
+        template = quik.Template('#set @a = {}:@a')
         self.assertEqual('{}', template.render({}))
 
     def test_macro_whitespace_and_newlines_ignored(self):
@@ -705,13 +705,13 @@ hello##
         self.assertEqual('hello', template.render({}))
 
     def test_subobject_assignment(self):
-        template = quik.Template("#set(@outer.inner = 'monkey')")
+        template = quik.Template("#set @outer.inner = 'monkey':")
         x = {'outer':{}}
         template.render(x)
         self.assertEqual('monkey', x['outer']['inner'])
 
     def test_expressions_with_numbers_with_fractions(self):
-        template = quik.Template('#set(@a = 100.0 / 50)@a')
+        template = quik.Template('#set @a = 100.0 / 50:@a')
         self.assertEqual('2.0', template.render({}))
 
     def test_multiline_arguments_to_function_calls(self):

@@ -730,8 +730,8 @@ class IfDirective(_Element):
 
 
 class Assignment(_Element):
-    START = re.compile(r'\s*\(\s*\@([a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*)*)\s*=\s*(.*)$', re.S + re.I)
-    END = re.compile(r'\s*\)(?:[ \t]*\r?\n)?(.*)$', re.S + re.M)
+    START = re.compile(r'\s*\@([a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*)*)\s*=\s*(.*)$', re.S + re.I)
+    END = re.compile(r'\s*\:(?:[ \t]*\r?\n)?(.*)$', re.S + re.M)
 
     def parse(self):
         var_name, = self.identity_match(self.START)
