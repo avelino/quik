@@ -8,8 +8,8 @@ except ImportError:
     xrange = range
 
 
-VERSION = (0, 2, 2)
-VERSION_TAG = None
+VERSION = (0, 2, 3)
+VERSION_TAG = 'dev'
 
 __version__ = ".".join(map(str, VERSION))
 if VERSION_TAG:
