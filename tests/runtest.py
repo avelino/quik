@@ -452,33 +452,33 @@ foo
             self.assertRaises(quik.TemplateSyntaxError, template.render, {})
 
     def test_cannot_call_undefined_macro(self):
-        template = quik.Template('#undefined()')
+        template = quik.Template('#undefined :')
         self.assertRaises(Exception, template.render, {})
 
     def test_define_and_use_macro_with_no_parameters(self):
-        template = quik.Template('#macro hello:hi#end#hello ()#hello()')
+        template = quik.Template('#macro hello:hi#end#hello :#hello :')
         self.assertEqual('hihi', template.render({'text': 'hello'}))
 
     def test_define_and_use_macro_with_one_parameter(self):
-        template = quik.Template('#macro bold @value:<strong>@value</strong>#end#bold (@text)')
+        template = quik.Template('#macro bold @value:<strong>@value</strong>#end#bold @text:')
         self.assertEqual('<strong>hello</strong>', template.render({'text': 'hello'}))
 
     def test_define_and_use_macro_with_two_parameters_no_comma(self):
-        template = quik.Template('#macro bold @value @other:<strong>@value</strong>@other#end#bold (@text @monkey)')
+        template = quik.Template('#macro bold @value @other:<strong>@value</strong>@other#end#bold @text @monkey:')
         self.assertEqual('<strong>hello</strong>cheese', template.render({'text': 'hello','monkey':'cheese'}))
 
     def test_define_and_use_macro_with_two_parameters_with_comma(self):
-        template = quik.Template('#macro bold @value, @other:<strong>@value</strong>@other#end#bold (@text, @monkey)')
+        template = quik.Template('#macro bold @value, @other:<strong>@value</strong>@other#end#bold @text, @monkey:')
         self.assertEqual('<strong>hello</strong>cheese', template.render({'text': 'hello','monkey':'cheese'}))
 
     def test_use_of_macro_name_is_case_insensitive(self):
-        template = quik.Template('#macro bold @value:<strong>@value</strong>#end#BoLd (@text)')
+        template = quik.Template('#macro bold @value:<strong>@value</strong>#end#BoLd @text:')
         self.assertEqual('<strong>hello</strong>', template.render({'text': 'hello'}))
 
     def test_define_and_use_macro_with_two_parameter(self):
-        template = quik.Template('#macro addition @value1 @value2:@value1+@value2#end#addition (1 2)')
+        template = quik.Template('#macro addition @value1 @value2:@value1+@value2#end#addition 1 2:')
         self.assertEqual('1+2', template.render({}))
-        template = quik.Template('#macro addition @value1 @value2:@value1+@value2#end#addition( @one   @two )')
+        template = quik.Template('#macro addition @value1 @value2:@value1+@value2#end#addition @one   @two :')
         self.assertEqual('ONE+TWO', template.render({'one': 'ONE', 'two': 'TWO'}))
 
     def test_cannot_redefine_macro(self):
@@ -532,7 +532,7 @@ foo
         self.assertEqual('2,1,0,-1,-2,', template.render({}))
 
     def test_local_namespace_methods_are_not_available_in_context(self):
-        template = quik.Template('#macro tryme:@values#end#tryme()')
+        template = quik.Template('#macro tryme:@values#end#tryme :')
         self.assertEqual('@values', template.render({}))
 
     def test_array_literal(self):
@@ -573,7 +573,7 @@ foo
         self.assertEqual("hello, @name is my name", template.render({'name':'Steve'}))
 
     def test_macros_expanded_in_double_quoted_strings(self):
-        template = quik.Template('#macro hi @person:@person says hello#end#set(@hello="#hi(@name)")@hello')
+        template = quik.Template('#macro hi @person:@person says hello#end#set(@hello="#hi @name:")@hello')
         self.assertEqual("Steve says hello", template.render({'name':'Steve'}))
 
     def test_color_spec(self):
@@ -616,7 +616,7 @@ foo
             def load_template(self, name):
                 if name == 'foo.tmpl':
                     return quik.Template('#macro themacro:works#end')
-        template = quik.Template('#parse("foo.tmpl")#themacro()')
+        template = quik.Template('#parse("foo.tmpl")#themacro :')
         self.assertEqual('works', template.render({}, loader=Loader()))
 
     def test_modulus_operator(self):
@@ -668,7 +668,7 @@ foo
         self.assertEqual('9', template.render({}))
 
     def test_recursive_macro(self):
-        template = quik.Template('#macro recur @number:#if (@number > 0)#set(@number = @number - 1)#recur(@number)X#end#end#recur(5)')
+        template = quik.Template('#macro recur @number:#if (@number > 0)#set(@number = @number - 1)#recur @number:X#end#end#recur 5:')
         self.assertEqual('XXXXX', template.render({}))
 
     def test_addition_has_higher_precedence_than_comparison(self):
@@ -695,7 +695,7 @@ foo
         template = quik.Template('''#macro blah:
 hello##
 #end
-#blah()''')
+#blah :''')
         self.assertEqual('hello', template.render({}))
 
     def test_if_whitespace_and_newlines_ignored(self):
