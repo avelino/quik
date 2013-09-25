@@ -64,4 +64,25 @@ Render via template:
                           loader=loader).encode('utf-8')
 
 
+Render via string:
+
+.. code-block:: python
+
+    from quik import Template
+
+    temp = Template("""
+    <ul>
+        #for @user in @users:
+            #if @user.age > 18:
+            <li><a href="@user.url">@user.username</a></li>
+            #end
+        #end
+    </ul>
+    """)
+
+    users = [
+        {'username': 'foo', 'url': 'http://...', 'age': 25},
+        {'username': 'bar', 'url': 'https://...', 'age': 18}]
+
+    print temp.render(locals())
 
