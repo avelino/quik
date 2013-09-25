@@ -19,6 +19,20 @@ Features
 - Supports native python expressions.
 
 
+Install
+-------
+
+.. code-block:: shell
+
+    pip install quik
+
+or developer mode:
+
+.. code-block:: shell
+
+    pip install -r git+https://github.com/avelino/quik.git#egg=quik
+
+
 Nutshell
 --------
 
